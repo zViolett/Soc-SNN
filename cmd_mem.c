@@ -132,148 +132,155 @@ static void mem_write_handler(int nb_params, char **params)
 define_command(mem_write, mem_write_handler, "Write address space", MEM_CMDS);
 
 /**
- * Command "transfer_snn"
+ * Command "packet2snn"
  *
  * Transfer packet to SNN
+ *
+ */
+static void packet_handler(int nb_params, char **params)
+{
+	char *c;
+	unsigned int *addr_state;
+	unsigned int *addr_tick;
+	unsigned int *addr_spike;
+	unsigned int *addr_complete;
+	void *addr_start;
+	unsigned int v = 0;
+
+	if (nb_params < 5) {
+		//						>0<				>1<				>2<				>3<				>4<						>5<					>6<
+		printf("packet2snn <address_start> <address_state> <address_tick> <address_spike> <address_complete> ");
+		return;
+	}
+
+	printf("Start \n");
+	//Transfer
+	//start
+	addr_start = (void *)strtoul(params[0], &c, 0);
+		if (*c != 0) {
+			printf("Incorrect address");
+			return;
+		}
+	//state
+	addr_state = (unsigned int *)strtoul(params[1], &c, 0);
+		if (*c != 0) {
+			printf("Incorrect address");
+			return;
+		}
+	//tick
+	addr_tick = (unsigned int *)strtoul(params[2], &c, 0);
+		if (*c != 0) {
+			printf("Incorrect address");
+			return;
+		}
+	//spike out
+	addr_spike = (unsigned int *)strtoul(params[3], &c, 0);
+		if (*c != 0) {
+			printf("Incorrect address");
+			return;
+		}
+	//complete
+	addr_complete = (unsigned int *)strtoul(params[4], &c, 0);
+		if (*c != 0) {
+			printf("Incorrect address");
+			return;
+		}
+
+	*(uint32_t *)addr_start = 1;
+	printf("Process start! Triggered Start register: ...");
+	dump_bytes(addr_start, 4, (unsigned long)addr_start);
+	while (*addr_complete !=  1)
+	{
+		if (*addr_tick == 1) {
+			dump_bytes(addr_start, 32, (unsigned long)addr_spike);
+		}
+		switch (*addr_state)
+		{
+		case 1:
+			if(v != 1){
+				printf("\nState: LOAD\n");
+				v = 1;
+			}
+			break;
+		case 2:
+			if(v != 2){
+				printf("\nState: COMPUTE\n");
+				v = 2;
+			}
+		case 4:
+			if(v != 4){
+				printf("\nState: WAIT_END\n");
+				v = 4;
+			}
+			break;
+		default:
+			if(v != 0){
+				printf("\nState: IDLE\n");
+				v = 0;
+			}
+		}
+		*(uint32_t *)addr_start = 0;
+	}
+}
+
+define_command(packet2snn, packet_handler, "Transfer packet to SNN", MEM_CMDS);
+
+/**
+ * Command "transfer_snn"
+ *
+ * Transfer packet to SNN old version
  *
  */
 static void transfer_handler(int nb_params, char **params)
 {
 	char *c;
 	unsigned int *addr_output;		//address for status reg
-	unsigned int *addr_value;		//address for value mem
-	unsigned int *addr_num_input;	//address for number input
-	void *addr_packet_in;			//address for packet_in
-	//void *addr_tick;				//address for tick
-	void *addr_status;				// status : [output-valid] [tick]  [input_buf_empty] [ren2in_buf]
-	//unsigned int count;
-	//unsigned int size;
-	//unsigned int packet_in;
-	unsigned int num_pic;
-	unsigned int i, p;
+	//void *addr_status;				// status : [complete] [output-valid] [tick]  [input_buf_empty] [done]
+	unsigned int *addr_output_valid;
+	unsigned int *addr_complete;
+	void *addr_start;
 
 	if (nb_params < 4) {
-		//							>0<					>1<					>2<				>3<					>4<				>5<					>6<
-		printf("transfer_snn <address_status> <address_packet_in> <address_packet_out> <address_value> <address_num_input> <num_picture>");
+		//						   >0<				>1<					>2<					>3<							>4<						>5<					>6<
+		printf("transfer_snn <address_start> <address_output> <address_output_valid> <address_complete> ");
 		return;
 	}
-	//size = 4;
-	// if (nb_params == 9) {
-	// 	count = 1;
-	// } else {
-	// 	count = strtoul(params[9], &c, 0);
-	// 	if(*c != 0) {
-	// 		printf("\nIncorrect count");
-	// 		return;
-	// 	}
-	// }
-	// if (nb_params == 11)
-	//	size = strtoul(params[10], &c, 0);
-	//dump_bytes(addr, length, (unsigned long)addr);
 
 	printf("Start \n");
 	//Transfer
-	//status
-	addr_status = (void *)strtoul(params[0], &c, 0);
+	//input_bufferr_empty
+	addr_start = (void *)strtoul(params[0], &c, 0);
 		if (*c != 0) {
 			printf("Incorrect address");
 			return;
 		}
-	//packet in
-	addr_packet_in = (void *)strtoul(params[1], &c, 0);
+	//output_valid
+	addr_output_valid = (unsigned int *)strtoul(params[2], &c, 0);
+		if (*c != 0) {
+			printf("Incorrect address");
+			return;
+		}
+	//complete
+	addr_complete = (unsigned int *)strtoul(params[3], &c, 0);
 		if (*c != 0) {
 			printf("Incorrect address");
 			return;
 		}
 	//ouput
-	addr_output = (unsigned int *)strtoul(params[2], &c, 0);
+	addr_output = (unsigned int *)strtoul(params[1], &c, 0);
 		if (*c != 0) {
 			printf("Incorrect address");
 			return;
-		}
-	//tick
-	// addr_tick = (void *)strtoul(params[3], &c, 0);
-	// 	if (*c != 0) {
-	// 		printf("Incorrect address");
-	// 		return;
-	// 	}
-	
-	//value
-	addr_value = (unsigned int *)strtoul(params[3], &c, 0);
-		if (*c != 0) {
-			printf("Incorrect address");
-			return;
-		}
-
-	//number input
-	addr_num_input = (unsigned int *)strtoul(params[4], &c, 0);
-		if (*c != 0) {
-			printf("Incorrect address");
-			return;
-		}
-	//Number picture
-	num_pic = strtoul(params[5], &c, 0);
-		if (*c != 0) {
-			printf("Incorrect address");
-			return;
-		}
-
-	for (i = 0; i<num_pic; i++)
+		}	
+	*(uint32_t *)addr_start = 1;
+	while (*addr_complete !=  1)
 	{
-		printf("Begin %d\n", i);
-		//status = *addr_status;
-		// if (*addr_status == 0)
-		// {
-		// 	*(uint32_t *)addr_input_buf_empty = 0;
-		// 	for(p = 0; p<10; p++ )
-		// 	{
-		// 		//ren2in_buf = *addr_ren2in_buf;
-		// 		if (*addr_ren2in_buf == 1)
-		// 		{
-		// 			*(uint32_t *)addr_wr		= wr_addr;
-		// 			*(uint32_t *)addr_packet_in = packet_in;
-		// 			wr_addr++;
-		// 			packet_in++;
-		// 			printf("%ld ", *(uint32_t *)addr_packet_in);
-		// 		}
-		// 	}
-		// 	*(uint32_t *)addr_input_buf_empty 	= 1;
-		// 	*(uint32_t *)addr_tick				= 1;
-		// 	*addr_status						= 1;
-		// }
-		// if (*addr_status == 1)
-		// {
-		// 	while (*addr_output_valid != 1)
-		// 	{
-		// 		printf(". ");
-		// 	}
-		// 	*addr_status 			= 0;
-		// 	printf("\n");
-		// }
-
-		*(uint32_t *)addr_status = 0;
-		for (p = 0; p < *addr_num_input; p++)
-		{
-			if (*(uint32_t *)addr_status == 1)
+		*(uint32_t *)addr_start = 0;
+		printf("Begin \n");
+			if (*addr_output_valid == 1)
 			{
-				*(uint32_t *)addr_packet_in = *addr_value;
-				addr_value += 4; 
+				printf("%ld \n", *(uint32_t *)addr_output);
 			}
-		}
-		*(uint32_t *)addr_status = 2;
-		while (*(uint32_t *)addr_status != 4)
-		{
-			printf(".");
-		}
-		printf("\n");
-		while (*(uint32_t *)addr_status != 4)
-		{
-			if (*(uint32_t *)addr_status == 8)
-			{
-				printf("%ld ", *(uint32_t *)addr_output);
-			}
-		}
-		addr_num_input +=4;
 	}
 }
 
