@@ -11,6 +11,7 @@ module load_packet #(
     input                   tick,
     input                   packet_out_valid,
     input       [7:0]       packet_out,
+    input       [2:0]       grid_state,
     output                  input_buffer_empty,
     output                  complete,
     output      [2:0]       state,
@@ -14666,10 +14667,12 @@ module load_packet #(
                     state_next = LOAD;
                     if(ptr_pic_next > 2) spike_next = compute_out_reg;
                 end
-                else if (ptr_pic_reg == NUM_PIC)begin
+                if (ptr_pic_reg == NUM_PIC)begin
                     //complete    = 1'b1;
                     state_next  = WAIT_END;
                 end
+                else if (grid_state == 7)
+                    state_next  = LOAD;
                 else
                     state_next  = COMPUTE;
             end
